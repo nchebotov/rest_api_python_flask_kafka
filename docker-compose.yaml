@@ -1,0 +1,66 @@
+version: '1.0.0'
+
+volumes:
+  app_data: {}
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      LISTENER_EXTERNAL: //localhost:9092
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    ports:
+      - 9000:9000
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      JVM_OPTS: -Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify
+    depends_on:
+      - kafka
+
+  app:
+    build: ./app
+    ports:
+      - 5000:5000
+
+#  prometheus:
+#    container_name: prometheus
+#    image: prom/prometheus:latest
+#    ports:
+#      - 9090:9090
+#    volumes:
+#      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+#    depends_on:
+#      - app
+
+#  grafana:
+#    image: grafana/grafana:5.1.0
+#    volumes:
+#      - ./grafana/config.ini:/etc/grafana/grafana.ini
+#      - ./grafana/datasource.yaml:/etc/grafana/provisioning/datasources/default.yaml
+#      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/default.yaml
+#      - ./grafana/dashboards:/var/lib/grafana/dashboards
+#    ports:
+#      - 3000:3000
+#    depends_on:
+#      - prometheus
