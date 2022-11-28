@@ -1,4 +1,10 @@
 Flask==2.1.1
+flask-restful==0.3.9
 requests==2.27.1
 confluent-kafka==1.9.2
 prometheus_client==0.15.0
+jsonify==0.5
+flasgger==0.9.5
+
+
+

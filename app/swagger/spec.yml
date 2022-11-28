@@ -1,0 +1,83 @@
+# coding: utf-8
+swagger: "2.0"
+
+info:
+  title: REST API
+  description: REST API microservice for working with Kafka
+  version: 1.0.0
+  contact:
+    name: Nikita Chebotov
+    email: nikitacebotov0@gmail.com
+host: 'localhost:5000'
+basePath: '/'
+schemes:
+  - http
+consumes:
+  - application/json
+  - application/xml
+produces:
+  - application/json
+  - application/xml
+#tags:
+#  - name: HOME
+#    description: ""
+#    externalDocs:
+#      description: ""
+#      url: " http://localhost:5000/home"
+paths:
+  /home:
+    get:
+      summary: Home
+      description: Home page endpoint. This uses docstrings for specifications.
+      responses:
+        '200':  #  status code
+          description: OK
+          headers:
+            Content-Type:
+              description: text/html; charset=utf-8
+              type: string
+            Content-Length:
+              description: in bytes
+              type: integer
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /send_data:
+    post:
+      summary: Send data
+      description: Send data endpoint. This uses docstrings for specifications.
+      parameters:
+        - in: body
+          name: data
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              model:
+                type: string
+              standard:
+                type: string
+              price_usd:
+                type: integer
+      responses:
+        '200': # status code
+          description: OK
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+  /read_data:
+    get:
+      summary: Read data
+      description: Read data endpoint. This uses docstrings for specifications.
+      responses:
+        '200': # status code
+          description: OK
+        '204':
+          description: No content
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error

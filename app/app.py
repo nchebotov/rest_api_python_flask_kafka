@@ -1,52 +1,37 @@
+# coding: utf-8
+
 import json, prometheus_client
 from flask import Flask, request, Response
+from flask_restful import Api
+from flasgger import Swagger, LazyJSONEncoder
 from confluent_kafka import Consumer, Producer
-from prometheus_client import Counter, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, CONTENT_TYPE_LATEST, make_wsgi_app, CollectorRegistry
+from data.config import *
 
 
 app = Flask(__name__)
-app.config.from_pyfile('config.cfg')
+api = Api(app)
+app.config.from_pyfile('config-app.cfg')
+swag = Swagger(app, template_file='swagger/spec.yml', parse=True)
+app.json_encoder = LazyJSONEncoder
 
 
-def commit_completed(err, partitions):
-    if err:
-        print(str(err))
-    else:
-        print("Committed partition offsets: " + str(partitions))
-
-
-kafka_topic_name = "kafka_topic_1"
-group = "group_rest_api"
-
-
-config = {
-    "bootstrap.servers": "kafka:9092,localhost:29092",
-}
-
-consumer_conf = {
-    "group.id": group,
-    "auto.offset.reset": "earliest",
-    "on_commit": commit_completed,
-    "enable.auto.commit": False,
-    "enable.partition.eof": True,
-    "message.max.bytes": 10485780
-}
-
-
+#   Rest API microservice metrics
 c_request = Counter('rest_api_requests_total', 'HTTP status codes', ['method', 'endpoint'])
-c_send_mess = Counter('rest_api_send_message_total', 'Total send message', ['kafka_topic_name', 'partition', 'group_id'])
+c_send_mess = Counter('rest_api_send_message_total', 'Total send message', ['kafka_topic_name', 'partition'])
 c_read_mess = Counter('rest_api_read_message_total', 'Total read message', ['kafka_topic_name', 'partition', 'group_id'])
+# all_total_mess = Counter('rest_api_all_message_total', 'Total all message', ['kafka_topic_name', 'partition', 'group_id'])
 
 
-@app.route('/', methods=['GET'])
+@app.route('/home', methods=['GET'])
 def home():
     c_request.labels(method='get', endpoint='/').inc()
-    return '<center><h2>Hello World!</h2></center>', 200
+    return 'Hello World!', 200
 
 
-@app.route('/post', methods=['POST'])
+@app.route('/send_data', methods=['POST'])
 def send_message():
-    c_request.labels(method='post', endpoint='/post').inc()
+    c_request.labels(method='post', endpoint='/send_data').inc()
     data = request.data
     p = Producer(config)
     try:
@@ -64,19 +49,18 @@ def send_message():
         # Trigger any available delivery report callbacks from previous produce() calls
         json_str = json.dumps(json.loads(data)).encode('utf-8')
         p.produce(topic=kafka_topic_name, value=json_str, callback=delivery_report)
-        c_send_mess.labels(group_id=group, kafka_topic_name=kafka_topic_name,
-                           partition=0).inc()
+        c_send_mess.labels(kafka_topic_name=kafka_topic_name, partition=0).inc()
     finally:
         # Wait for any outstanding messages to be delivered and delivery report
         # callbacks to be triggered.
         p.flush()
     return f'''Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON!
-              Сообщение успешно записано!'''
+              Сообщение успешно записано!''', 200
 
 
-@app.route('/get', methods=['GET'])
+@app.route('/read_data', methods=['GET'])
 def read_messages():
-    c_request.labels(method='get', endpoint='/get').inc()
+    c_request.labels(method='get', endpoint='/read_data').inc()
     # We extend the base config with a configuration for the consumer
     consumer_conf.update(config)
     cons = Consumer(consumer_conf)
@@ -100,14 +84,14 @@ def read_messages():
             cons.commit(asynchronous=False)
     cons.close()
     if len(messages) > 0:
-        return f'{messages[:]}'
+        return f'{messages[:]}', 200
     else:
-        return 'Непрочитанные сообщения отсутствуют!'
+        return 'Непрочитанные сообщения отсутствуют!', 204
 
 
 @app.route('/metrics/')
 def metrics():
-    return Response(prometheus_client.generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+    return Response(prometheus_client.generate_latest(), content_type='application/json'), 200
 
 
 @app.errorhandler(500)
@@ -117,4 +101,5 @@ def handle_500(error):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True)
+
 
