@@ -18,16 +18,11 @@ consumes:
 produces:
   - application/json
   - application/xml
-#tags:
-#  - name: HOME
-#    description: ""
-#    externalDocs:
-#      description: ""
-#      url: " http://localhost:5000/home"
+
 paths:
   /home:
     get:
-      summary: Home
+      summary: Home.
       description: Home page endpoint. This uses docstrings for specifications.
       responses:
         '200':  #  status code
@@ -43,10 +38,11 @@ paths:
           description: Bad Request
         '500':
           description: Internal Server Error
+
   /send_data:
     post:
       summary: Send data
-      description: Send data endpoint. This uses docstrings for specifications.
+      description: Endpoint send data to Kafka.
       parameters:
         - in: body
           name: data
@@ -64,19 +60,53 @@ paths:
       responses:
         '200': # status code
           description: OK
+          headers:
+            Content-Type:
+              description: text/html; charset=utf-8
+              type: array
+            Content-Length:
+              description: in bytes
+              type: integer
         '400':
           description: Bad Request
         '500':
           description: Internal Server Error
+
   /read_data:
     get:
       summary: Read data
-      description: Read data endpoint. This uses docstrings for specifications.
+      description: Endpoint read data to Kafka.
       responses:
         '200': # status code
           description: OK
+          headers:
+            Content-Type:
+              description: text/html; charset=utf-8
+              type: array
+            Content-Length:
+              description: in bytes
+              type: integer
         '204':
           description: No content
+        '400':
+          description: Bad Request
+        '500':
+          description: Internal Server Error
+
+  /metrics:
+    get:
+      summary: Metrics
+      description: Metrics page endpoint.
+      responses:
+        '200': #  status code
+          description: OK
+          headers:
+            Content-Type:
+              description: application/json
+              type: array
+            Content-Length:
+              description: in bytes
+              type: integer
         '400':
           description: Bad Request
         '500':
