@@ -5,6 +5,7 @@ volumes:
 
 services:
   zookeeper:
+    container_name: zookeeper
     image: confluentinc/cp-zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -14,7 +15,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:latest
-    container_name: broker
+    container_name: broker-kafka
     depends_on:
       - zookeeper
     ports:
@@ -29,6 +30,7 @@ services:
       LISTENER_EXTERNAL: //localhost:9092
 
   kafdrop:
+    container_name: kafdrop
     image: obsidiandynamics/kafdrop
     ports:
       - 9000:9000
@@ -39,21 +41,25 @@ services:
       - kafka
 
   app:
-    build: ./app
+    container_name: app
+    image: app
+    build:
+      context: ./app
     ports:
       - 5000:5000
 
-#  prometheus:
-#    container_name: prometheus
-#    image: prom/prometheus:latest
-#    ports:
-#      - 9090:9090
-#    volumes:
-#      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
-#    depends_on:
-#      - app
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app
 
 #  grafana:
+#    container_name: grafana
 #    image: grafana/grafana:5.1.0
 #    volumes:
 #      - ./grafana/config.ini:/etc/grafana/grafana.ini

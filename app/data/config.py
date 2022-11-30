@@ -8,8 +8,8 @@ def commit_completed(err, partitions):
 
 
 kafka_topic_name = "kafka_topic_1"
-group = "group_rest_api"
-metrics = "group_metrics"
+group = "rest_api_group"
+metric = "group_metrics"
 
 config = {
     "bootstrap.servers": "kafka:9092,localhost:29092",
@@ -25,9 +25,8 @@ consumer_conf = {
 }
 
 consumer_metrics_conf = {
-    "group.id": metrics,
+    "group.id": metric,
     "auto.offset.reset": "earliest",
-    "on_commit": commit_completed,
     "enable.auto.commit": False,
     "enable.partition.eof": True,
     "message.max.bytes": 10485780

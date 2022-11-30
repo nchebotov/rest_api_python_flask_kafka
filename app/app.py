@@ -1,11 +1,12 @@
 # coding: utf-8
 
-import json, prometheus_client
+import json
+import prometheus_client
 from flask import Flask, request, Response
 from flask_restful import Api
 from flasgger import Swagger, LazyJSONEncoder
 from confluent_kafka import Consumer, Producer
-from prometheus_client import Counter, CONTENT_TYPE_LATEST, make_wsgi_app, CollectorRegistry
+from prometheus_client import Counter, Gauge, CollectorRegistry
 from data.config import *
 
 
@@ -17,10 +18,35 @@ app.json_encoder = LazyJSONEncoder
 
 
 #   Rest API microservice metrics
-c_request = Counter('rest_api_requests_total', 'HTTP status codes', ['method', 'endpoint'])
-c_send_mess = Counter('rest_api_send_message_total', 'Total send message', ['kafka_topic_name', 'partition'])
-c_read_mess = Counter('rest_api_read_message_total', 'Total read message', ['kafka_topic_name', 'partition', 'group_id'])
-# all_total_mess = Counter('rest_api_all_message_total', 'Total all message', ['kafka_topic_name', 'partition', 'group_id'])
+registry = CollectorRegistry()
+
+c_request = Counter('rest_api_requests_total', 'HTTP status codes', ['method', 'endpoint'], registry=registry)
+
+c_send_mess = Counter('rest_api_send_message_total', 'Total send message',
+                      ['kafka_topic_name', 'partition'], registry=registry)
+
+c_read_mess = Counter('rest_api_read_message_total', 'Total read message',
+                      ['group_id', 'kafka_topic_name', 'partition'], registry=registry)
+
+all_total_mess = Gauge('rest_api_all_message_topic_total', 'Total all message in topic Kafka',
+                       ['group_id', 'kafka_topic_name', 'partition'])
+
+
+def all_mess():
+    consumer_metrics_conf.update(config)
+    cons = Consumer(consumer_metrics_conf)
+    cons.subscribe([kafka_topic_name])
+    count = 0
+    while True:
+        msg = cons.poll(timeout=5.0)
+        if msg is None:
+            continue
+        if msg.error():
+            break
+        if msg:
+            count += 1
+            all_total_mess.labels(group_id=metric, kafka_topic_name=kafka_topic_name, partition=0).set(count)
+    cons.close()
 
 
 @app.route('/home', methods=['GET'])
@@ -86,12 +112,12 @@ def read_messages():
     if len(messages) > 0:
         return f'{messages[:]}', 200
     else:
-        return 'Непрочитанные сообщения отсутствуют!', 204
+        return 'Непрочитанные сообщения отсутствуют! Status code: 204'
 
 
 @app.route('/metrics/')
 def metrics():
-    return Response(prometheus_client.generate_latest(), content_type='application/json'), 200
+    return Response(prometheus_client.generate_latest(registry), mimetype='text/plain'), 200
 
 
 @app.errorhandler(500)
@@ -101,5 +127,3 @@ def handle_500(error):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True)
-
-
