@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 3s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'app'
+    scrape_interval: 3s
+    static_configs:
+        - targets: [ 'app:5000', 'localhost:5000' ]
+          -
+#  - job_name: 'app-1'
+#      scrape_interval: 60s
+#      static_configs:
+#        - targets: [ 'app:5000/metrics/all_message', 'localhost:5000/metrics/all_message', '127.0.0.1:5000/metrics/all_message' ]
+
+  - job_name: "prometheus"
+    scrape_interval: 3s
+    static_configs:
+      - targets: [ 'prometheus:9090' ]

@@ -7,7 +7,7 @@ from flask_restful import Api
 from flasgger import Swagger, LazyJSONEncoder
 from confluent_kafka import Consumer, Producer
 from prometheus_client import Counter, Gauge, CollectorRegistry
-from data.config import *
+from app.data.config import *
 
 
 app = Flask(__name__)
@@ -33,9 +33,9 @@ all_total_mess = Gauge('rest_api_all_message_topic_total', 'Total all message in
 
 
 def all_mess():
-    consumer_metrics_conf.update(config)
+    consumer_metrics_conf.update(CONFIG)
     cons = Consumer(consumer_metrics_conf)
-    cons.subscribe([kafka_topic_name])
+    cons.subscribe([KAFKA_TOPIC_NAME])
     count = 0
     while True:
         msg = cons.poll(timeout=5.0)
@@ -45,7 +45,7 @@ def all_mess():
             break
         if msg:
             count += 1
-            all_total_mess.labels(group_id=metric, kafka_topic_name=kafka_topic_name, partition=0).set(count)
+            all_total_mess.labels(group_id=METRICS, kafka_topic_name=KAFKA_TOPIC_NAME, partition=0).set(count)
     cons.close()
 
 
@@ -59,7 +59,7 @@ def home():
 def send_message():
     c_request.labels(method='post', endpoint='/send_data').inc()
     data = request.data
-    p = Producer(config)
+    p = Producer(CONFIG)
     try:
         # Validation of the json format of the incoming POST request from the user
         json.loads(data)
@@ -74,26 +74,25 @@ def send_message():
                 print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
         # Trigger any available delivery report callbacks from previous produce() calls
         json_str = json.dumps(json.loads(data)).encode('utf-8')
-        p.produce(topic=kafka_topic_name, value=json_str, callback=delivery_report)
-        c_send_mess.labels(kafka_topic_name=kafka_topic_name, partition=0).inc()
+        p.produce(topic=KAFKA_TOPIC_NAME, value=json_str, callback=delivery_report)
+        c_send_mess.labels(kafka_topic_name=KAFKA_TOPIC_NAME, partition=0).inc()
     finally:
         # Wait for any outstanding messages to be delivered and delivery report
         # callbacks to be triggered.
         p.flush()
-    return f'''Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON!
-              Сообщение успешно записано!''', 200
+    return f'Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON! Сообщение успешно записано!', 200
 
 
 @app.route('/read_data', methods=['GET'])
 def read_messages():
     c_request.labels(method='get', endpoint='/read_data').inc()
     # We extend the base config with a configuration for the consumer
-    consumer_conf.update(config)
-    cons = Consumer(consumer_conf)
+    CONSUMER_CONF.update(CONFIG)
+    cons = Consumer(CONSUMER_CONF)
     # Define empty list for kafka consumer messages
     messages = []
-    cons.subscribe([kafka_topic_name])
-    print("=== Consuming transactional messages from topic {}. ===".format(kafka_topic_name))
+    cons.subscribe([KAFKA_TOPIC_NAME])
+    print("=== Consuming transactional messages from topic {}. ===".format(KAFKA_TOPIC_NAME))
     while True:
         msg = cons.poll(timeout=100.0)
         if msg is None:
@@ -105,7 +104,7 @@ def read_messages():
         if msg:
             payload = msg.value().decode('utf-8')
             print('Received message: {}'.format(json.loads(payload.encode('utf-8'))))
-            c_read_mess.labels(group_id=group, kafka_topic_name=kafka_topic_name, partition=0).inc()
+            c_read_mess.labels(group_id=GROUP, kafka_topic_name=KAFKA_TOPIC_NAME, partition=0).inc()
             messages.append(json.loads(payload.encode('utf-8')))
             cons.commit(asynchronous=False)
     cons.close()
