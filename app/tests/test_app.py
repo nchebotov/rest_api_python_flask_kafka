@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import pytest
-from app.tests.data.data_for_tests_app import *
+from data.data_for_tests_app import *
 
 
 def test_home_page_positive(client):

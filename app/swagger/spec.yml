@@ -63,7 +63,7 @@ paths:
           headers:
             Content-Type:
               description: text/html; charset=utf-8
-              type: array
+              type: string
             Content-Length:
               description: in bytes
               type: integer
