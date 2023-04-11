@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import pytest
-from data.data_for_tests_app import *
+from app.tests.data.data_for_tests_app import *
 
 
 def test_home_page_positive(client):
@@ -21,7 +21,7 @@ def test_send_message_positive(client, testdata):
     """
     response = client.post('/send_data', data=testdata, headers={"Content-Type": "application/json"})
     assert response.status_code == 200
-    assert f'Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON! Сообщение успешно записано!' in response.text
+    assert 'Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON! Сообщение успешно записано!' in response.text
     print(response.status)
 
 
