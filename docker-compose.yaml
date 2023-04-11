@@ -1,12 +1,10 @@
 version: '1.0.0'
 
-volumes:
-  app_data: {}
 
 services:
   zookeeper:
-    container_name: zookeeper
     image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -30,8 +28,8 @@ services:
       LISTENER_EXTERNAL: //localhost:9092
 
   kafdrop:
-    container_name: kafdrop
     image: obsidiandynamics/kafdrop
+    container_name: kafdrop
     ports:
       - 9000:9000
     environment:
@@ -41,19 +39,38 @@ services:
       - kafka
 
   app:
-    container_name: app
     image: app
+    container_name: app
     build:
       context: ./app
     ports:
       - 5000:5000
 
   prometheus:
+    image: prom/prometheus
     container_name: prometheus
-    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
     ports:
       - 9090:9090
+    restart: unless-stopped
     volumes:
-      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
     depends_on:
       - app
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+volumes:
+  prom_data:
+...

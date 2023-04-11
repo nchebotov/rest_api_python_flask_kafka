@@ -44,7 +44,8 @@ def all_mess():
             break
         if msg:
             count += 1
-            all_total_mess.labels(group_id=app.config['METRICS'], kafka_topic_name=app.config['KAFKA_TOPIC_NAME'], partition=0).set(count)
+            all_total_mess.labels(group_id=app.config['METRICS'], kafka_topic_name=app.config['KAFKA_TOPIC_NAME'],
+                                  partition=0).set(count)
     cons.close()
 
 
@@ -79,7 +80,7 @@ def send_message():
         # Wait for any outstanding messages to be delivered and delivery report
         # callbacks to be triggered.
         p.flush()
-    return f'Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON! Сообщение успешно записано!', 200
+    return 'Данный формат отправленного сообщения СООТВЕТСТВУЕТ формату JSON! Сообщение успешно записано!', 200
 
 
 @app.route('/read_data', methods=['GET'])
@@ -103,7 +104,8 @@ def read_messages():
         if msg:
             payload = msg.value().decode('utf-8')
             print('Received message: {}'.format(json.loads(payload.encode('utf-8'))))
-            c_read_mess.labels(group_id=app.config['GROUP'], kafka_topic_name=app.config['KAFKA_TOPIC_NAME'], partition=0).inc()
+            c_read_mess.labels(group_id=app.config['GROUP'], kafka_topic_name=app.config['KAFKA_TOPIC_NAME'],
+                               partition=0).inc()
             messages.append(json.loads(payload.encode('utf-8')))
             cons.commit(asynchronous=False)
     cons.close()
